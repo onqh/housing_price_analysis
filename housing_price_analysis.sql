@@ -26,6 +26,7 @@ LIMIT 5;
 -- 	DROP COLUMN IF EXISTS ppd_cat_type,
 -- 	DROP COLUMN IF EXISTS record_status;
 
+-----CLEANING DATA------
 -- CHECK MISSING DATA
 SELECT
   round(1.0 * SUM(CASE WHEN houses.tid IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS tid,
@@ -39,11 +40,33 @@ SELECT
   round(1.0 * SUM(CASE WHEN houses.district IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS district
 FROM houses;
 
+-- FIND IF THERE ARE ANY DUPLICATES
+WITH cte AS
+(SELECT *,
+	ROW_NUMBER() OVER (
+	PARTITION BY tid,
+				 sold_price,
+				 sold_date,
+				 postcode
+				 ORDER BY tid
+			 ) AS row_number
+FROM houses)
+SELECT *
+FROM cte
+WHERE row_number = 1;
 
--- TID: Transaction ID: unique ID for each time a property is sold
-SELECT COUNT(*)
+-- SELECT *
+-- FROM cte
+-- WHERE tid = '{453D27A3-ECD6-EF91-E050-A8C0630574D7}'
+-- ORDER BY tid;
+
+-- FIND INACCURATE PRICE
+SELECT *
 FROM houses
-WHERE tid = '' OR tid IS NULL;
+WHERE sold_price < 10000 OR sold_price > 10000000;
+
+----------------------------------------------------------------------
+-- TID: Transaction ID: unique ID for each time a property is sold
 
 -- PROPERTY TYPE: D = Detachted, S = Semi-Detached, T = Terraced, F = Flat, O = Others
 -- to find NULL
@@ -72,12 +95,13 @@ SELECT duration, COUNT(*)
 FROM houses
 GROUP BY 1;
 
--- PRICE: 
-SELECT sold_price
+-- TOWN/CITY
+SELECT town, COUNT(*)
 FROM houses
-WHERE sold_price IS NULL;
+GROUP BY 1
+ORDER BY 2;
 
-
+-- PRICE: 
 -- Average Price per year
 SELECT extract(year from sold_date) AS Year, AVG(sold_price) AS "Average Price"
 FROM houses
