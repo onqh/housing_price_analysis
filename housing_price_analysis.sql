@@ -55,59 +55,89 @@ SELECT *
 FROM cte
 WHERE row_number > 1;
 
--- FIND OUTLIER PRICE: TODO: DEALING WITH OUTLIERS by percentile or mean
+-- FIND OUTLIER
 SELECT *
 FROM houses
 WHERE sold_price < 1000 OR sold_price > 50 * 10^6
 ORDER BY sold_price DESC;
-
+-- There are some extreme sold prices so we use median for the analysis
 ----------------------------------------------------------------------
 -- TID: Transaction ID: unique ID for each time a property is sold
 
 -- PROPERTY TYPE: D = Detachted, S = Semi-Detached, T = Terraced, F = Flat, O = Others
--- count each types
-SELECT h2.year, h2.property_type, h2.volume, h2.average_price
+-- average price of each types over year
+SELECT h2.year, h2.property_type, h2.median
 FROM
-(SELECT extract(year from sold_date) AS year, property_type, COUNT(*) AS volume, round(AVG(sold_price), 2) AS Average_price
+(SELECT extract(year from sold_date) AS year, property_type,
+ 		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median
 FROM houses
 GROUP BY 1,2) h2
 ORDER BY 1,2;
 
--- average price each types
-SELECT property_type,COUNT(*), round(AVG(sold_price), 2) AS average_price
+-- count of each type per year percentage wise
+WITH property_type AS
+(SELECT extract(year from sold_date) AS year, property_type, COUNT(*) as count
+FROM houses
+GROUP BY 1,2
+ORDER BY 1)
+SELECT year, property_type, count,
+	   round(100.0 * count / SUM(count) OVER(PARTITION BY year), 1) AS perc
+FROM property_type
+GROUP BY 1,2,3
+ORDER BY year
+
+
+-- median price each types
+SELECT property_type,COUNT(*), PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median_price
 FROM houses
 GROUP BY property_type
 ORDER BY 2 DESC;
 
 -- NEW BUILD
--- count total new build
-SELECT new_build, COUNT(*), round(AVG(sold_price), 2) AS average_price
+-- count total new build and price
+SELECT new_build, COUNT(*), PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median_price
 FROM houses
 GROUP BY new_build
 ORDER BY 2;
 
--- each type and each year
-SELECT h2.year, h2.new_build, h2.volume, h2.average_price
-FROM
-(SELECT extract(year from sold_date) AS year, new_build, COUNT(*) AS volume, round(AVG(sold_price), 2) AS Average_price
+-- percentage wise each year of new_build
+WITH new_build AS
+(SELECT extract(year from sold_date) AS year, new_build, 
+ 		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median_price, 
+ 		COUNT(*) as count
 FROM houses
-GROUP BY 1,2) h2
-ORDER BY 1,2;
+GROUP BY 1,2
+)
+SELECT year, new_build, median_price, count,
+	   round(100.0 * count / SUM(count) OVER(PARTITION BY year), 1) AS perc
+FROM new_build
+GROUP BY 1,2,3,4
+ORDER BY year
+
+-- -- each type and each year
+-- SELECT h2.year, h2.new_build, h2.volume, h2.average_price
+-- FROM
+-- (SELECT extract(year from sold_date) AS year, new_build, COUNT(*) AS volume, round(AVG(sold_price), 2) AS Average_price
+-- FROM houses
+-- GROUP BY 1,2) h2
+-- ORDER BY 1,2;
 
 -- New Build vs Property type
-SELECT property_type, new_build, COUNT(*), round(AVG(sold_price), 2) AS average_price
+SELECT property_type, new_build, COUNT(*), 
+	   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median_price
 FROM houses
 GROUP BY 1,2
 ORDER BY 1,2 DESC;
 
 -- DURATION: Leashold and Freehold or Unknown
-SELECT duration, COUNT(*), round(AVG(sold_price), 2) AS average_price
+SELECT duration, COUNT(*), PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median_price
 FROM houses
 GROUP BY 1;
 
-SELECT h2.year, h2.duration, h2.volume, h2.average_price
+SELECT h2.year, h2.duration, h2.volume, h2.median_price
 FROM
-(SELECT extract(year from sold_date) AS year, duration, COUNT(*) AS volume, round(AVG(sold_price), 2) AS Average_price
+(SELECT extract(year from sold_date) AS year, duration, COUNT(*) AS volume, 
+ 		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median_price
 FROM houses
 GROUP BY 1,2) h2
 ORDER BY 1,2;
@@ -119,9 +149,10 @@ ORDER BY 1,2;
 -- ORDER BY 3 DESC;
 
 -- Only take the town with number of property sold large than the average
-SELECT x.town,x.volume, round(x.average_price, 2) AS Average_price
+SELECT x.town,x.volume, x.median
 FROM (
-	SELECT h.town, AVG(h.sold_price) AS average_price, COUNT(h.*) AS volume, AVG(COUNT(h.*)) OVER () AS mean
+	SELECT h.town, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median, 
+	COUNT(h.*) AS volume, AVG(COUNT(h.*)) OVER () AS mean
 	FROM houses AS h
 	GROUP BY 1
 	ORDER BY 2 DESC
@@ -137,39 +168,42 @@ ORDER BY 3 DESC;
 -- ORDER BY 3 DESC
 
 -- COUNTY
-SELECT county, round(AVG(sold_price),2) AS average_price, COUNT(*) AS volume
+SELECT county, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median, COUNT(*) AS volume
 FROM houses 
 GROUP BY 1
-ORDER BY 3 DESC
+ORDER BY 2 DESC
 
 -- QUUESTION: 
 -- Average Price per year and  Year on Year Price changes
 WITH year_price AS
-(SELECT extract(year from sold_date) AS year, 
+(SELECT extract(year from sold_date) AS year,
+ 		extract(month from sold_date) AS month,
  		round(AVG(sold_price),2) AS average_price
 FROM houses
-GROUP BY 1
+GROUP BY 1,2
 )
-SELECT  year AS current_year, 
- 		average_price AS current_average_price,
- 		round(100* (average_price - LAG(average_price) OVER(ORDER BY year)) / LAG(average_price) OVER(ORDER BY year) , 2) AS YoY_changes
+SELECT  year, month,
+ 		average_price AS average_price,
+ 		round(100* (average_price - LAG(average_price) OVER(ORDER BY year, month)) / LAG(average_price) OVER(ORDER BY year, month) , 2) AS YoY_changes
 FROM year_price
-GROUP BY 1, 2
-ORDER BY 1;
+GROUP BY 1, 2, 3
+ORDER BY 1, 2;
 
 -- Sales volume and YoY change
-SELECT h.year AS current_year,
+SELECT h.year AS year,
+       h.month AS month,
 	   h.sales_volume AS sales_volume,
-	   round(100 * (h.sales_volume - LAG(h.sales_volume) OVER(ORDER BY h.year)) / LAG(h.sales_volume) OVER(ORDER BY h.year),2) AS YoT_changes
+	   round(100 * (h.sales_volume - LAG(h.sales_volume) OVER(ORDER BY h.year, h.month)) / LAG(h.sales_volume) OVER(ORDER BY h.year, h.month),2) AS perc_changes
 FROM
 (
 	SELECT extract(year from h.sold_date) AS year,
+	   extract(month from h.sold_date) AS month,
 	   COUNT(h.*) AS sales_volume
 	FROM houses AS h
-	GROUP BY 1
+	GROUP BY 1,2
 ) h
-GROUP BY 1, 2
-ORDER BY 1
+GROUP BY 1, 2, 3
+ORDER BY 1, 2;
 
 -- Sales distribution
 SELECT h.dist_group, COUNT(*)
@@ -190,4 +224,5 @@ FROM
 ) AS h
 GROUP BY dist_group
 ORDER BY 1;
+
 
