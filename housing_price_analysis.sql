@@ -29,15 +29,15 @@ LIMIT 5;
 -----CLEANING DATA------
 -- CHECK MISSING DATA
 SELECT
-  round(1.0 * SUM(CASE WHEN houses.tid IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS tid,
-  round(1.0 * SUM(CASE WHEN houses.sold_price IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS sold_price,
-  round(1.0 * SUM(CASE WHEN houses.sold_date IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS sold_date,
-  round(1.0 * SUM(CASE WHEN houses.postcode IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS postcode,
-  round(1.0 * SUM(CASE WHEN houses.property_type IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS property_type,
-  round(1.0 * SUM(CASE WHEN houses.new_build IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS new_build,
-  round(1.0 * SUM(CASE WHEN houses.duration IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS duration,
-  round(1.0 * SUM(CASE WHEN houses.town IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS town,
-  round(1.0 * SUM(CASE WHEN houses.district IS NULL THEN 1 ELSE 0 END) / COUNT(*) OVER (), 2) AS district
+  SUM(CASE WHEN houses.tid IS NULL OR houses.tid = '' THEN 1 ELSE 0 END) AS tid,
+  SUM(CASE WHEN houses.sold_price IS NULL OR houses.sold_price = 0 THEN 1 ELSE 0 END) AS sold_price,
+  SUM(CASE WHEN houses.sold_date IS NULL THEN 1 ELSE 0 END) AS sold_date,
+  SUM(CASE WHEN houses.postcode IS NULL OR houses.postcode = '' THEN 1 ELSE 0 END)AS postcode,
+  SUM(CASE WHEN houses.property_type IS NULL OR houses.property_type = '' THEN 1 ELSE 0 END) AS property_type,
+  SUM(CASE WHEN houses.new_build IS NULL OR houses.new_build = '' THEN 1 ELSE 0 END) AS new_build,
+  SUM(CASE WHEN houses.duration IS NULL OR houses.duration = '' THEN 1 ELSE 0 END) AS duration,
+  SUM(CASE WHEN houses.town IS NULL OR houses.town = '' THEN 1 ELSE 0 END) AS town,
+  SUM(CASE WHEN houses.district IS NULL OR houses.district = '' THEN 1 ELSE 0 END) AS district
 FROM houses;
 
 -- FIND IF THERE ARE ANY DUPLICATES
@@ -68,9 +68,9 @@ ORDER BY sold_price DESC;
 -- average price of each types over year
 SELECT h2.year, h2.property_type, h2.median
 FROM
-(SELECT extract(year from sold_date) AS year, property_type,
- 		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median
-FROM houses
+(SELECT extract(year from h.sold_date) AS year, h.property_type,
+ 		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY h.sold_price) AS median
+FROM houses h
 GROUP BY 1,2) h2
 ORDER BY 1,2;
 
@@ -226,5 +226,3 @@ FROM
 ) AS h
 GROUP BY dist_group
 ORDER BY 1;
-
-
