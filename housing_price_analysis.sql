@@ -181,10 +181,11 @@ WITH year_price AS
  		round(AVG(sold_price),2) AS average_price
 FROM houses
 GROUP BY 1,2
+HAVING extract(month from sold_date) = 12
 )
 SELECT  year, month,
  		average_price AS average_price,
- 		round(100* (average_price - LAG(average_price) OVER(ORDER BY year, month)) / LAG(average_price) OVER(ORDER BY year, month) , 2) AS YoY_changes
+ 		round(100* (average_price - LAG(average_price) OVER(ORDER BY year)) / LAG(average_price) OVER(ORDER BY year) , 2) AS YoY_changes
 FROM year_price
 GROUP BY 1, 2, 3
 ORDER BY 1, 2;
@@ -193,7 +194,7 @@ ORDER BY 1, 2;
 SELECT h.year AS year,
        h.month AS month,
 	   h.sales_volume AS sales_volume,
-	   round(100 * (h.sales_volume - LAG(h.sales_volume) OVER(ORDER BY h.year, h.month)) / LAG(h.sales_volume) OVER(ORDER BY h.year, h.month),2) AS perc_changes
+	   round(100 * (h.sales_volume - LAG(h.sales_volume) OVER(ORDER BY h.year)) / LAG(h.sales_volume) OVER(ORDER BY h.year),2) AS perc_changes
 FROM
 (
 	SELECT extract(year from h.sold_date) AS year,
@@ -201,6 +202,7 @@ FROM
 	   COUNT(h.*) AS sales_volume
 	FROM houses AS h
 	GROUP BY 1,2
+	HAVING extract(month from h.sold_date) = 12
 ) h
 GROUP BY 1, 2, 3
 ORDER BY 1, 2;
