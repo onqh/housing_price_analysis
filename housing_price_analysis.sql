@@ -10,21 +10,9 @@ LIMIT 5;
 -- PPD Cartegory type is the type of price paid data. There are two cartegories: 
 -- A: Standard Price Paid entry and B: Additional Price Paid entry. 
 -- HM Land Registry has been collecting the information on Category A transactions from January 1995. Category B transactions were identified from October 2013.
--- In this project, we don't analyse this information.
 
 -- RECORD STATUS: demonstrates monthly files only Indicates additions, changes and deletions to the records. The categories are A, C, D
--- We don't analyse this information.
 
--- ADDRESS: We analyse the data based on the Town/City and District so we only use this column
-
--- ALTER TABLE houses
---     DROP COLUMN IF EXISTS building_number,
---     DROP COLUMN IF EXISTS building_name,
--- 	DROP COLUMN IF EXISTS street,
--- 	DROP COLUMN IF EXISTS locality,
--- 	DROP COLUMN IF EXISTS county,
--- 	DROP COLUMN IF EXISTS ppd_cat_type,
--- 	DROP COLUMN IF EXISTS record_status;
 
 -----CLEANING DATA------
 -- CHECK MISSING DATA
@@ -236,45 +224,31 @@ SELECT h.dist_group, COUNT(*)
 FROM
 (
  SELECT CASE WHEN sold_price BETWEEN 0 AND 49999 THEN '0 - 49,999'
-	     WHEN sold_price BETWEEN 50000 AND 99999 THEN '50,000 - 99,999'
+			 WHEN sold_price BETWEEN 50000 AND 99999 THEN '50,000 - 99,999'
              WHEN sold_price BETWEEN 100000 AND 149999 THEN '100,000 - 149,999'
              WHEN sold_price BETWEEN 150000 AND 199999 THEN '150,000 - 199,999'
-	     WHEN sold_price BETWEEN 200000 AND 249999 THEN '200,000 - 249,999'
-	     WHEN sold_price BETWEEN 250000 AND 299999 THEN '250,000 - 299,999'
+	     	 WHEN sold_price BETWEEN 200000 AND 249999 THEN '200,000 - 249,999'
+	         WHEN sold_price BETWEEN 250000 AND 299999 THEN '250,000 - 299,999'
              WHEN sold_price BETWEEN 300000 AND 349999 THEN '300,000 - 349,999'
-	     WHEN sold_price BETWEEN 350000 AND 399999 THEN '350,000 - 399,999'
+	         WHEN sold_price BETWEEN 350000 AND 399999 THEN '350,000 - 399,999'
              WHEN sold_price BETWEEN 400000 AND 449999 THEN '400,000 - 449,999'
-	     WHEN sold_price BETWEEN 450000 AND 499999 THEN '450,000 - 499,999'
-	     WHEN sold_price BETWEEN 500000 AND 549999 THEN '500,000 - 549,999'
+	     	 WHEN sold_price BETWEEN 450000 AND 499999 THEN '450,000 - 499,999'
+	         WHEN sold_price BETWEEN 500000 AND 549999 THEN '500,000 - 549,999'
              WHEN sold_price BETWEEN 550000 AND 599999 THEN '550,000 - 599,999'
-	     WHEN sold_price BETWEEN 600000 AND 649999 THEN '600,000 - 649,999'
+	         WHEN sold_price BETWEEN 600000 AND 649999 THEN '600,000 - 649,999'
              WHEN sold_price BETWEEN 650000 AND 699999 THEN '650,000 - 699,999'
-	     WHEN sold_price BETWEEN 700000 AND 749999 THEN '700,000 - 749,999'
-	     WHEN sold_price BETWEEN 750000 AND 799999 THEN '750,000 - 799,999'
-             WHEN sold_price BETWEEN 900000 AND 849999 THEN '800,000 - 849,999'
-	     WHEN sold_price BETWEEN 850000 AND 899999 THEN '850,000 - 899,999'
-	     WHEN sold_price BETWEEN 900000 AND 949999 THEN '900,000 - 949,999'
+	     	 WHEN sold_price BETWEEN 700000 AND 749999 THEN '700,000 - 749,999'
+	         WHEN sold_price BETWEEN 750000 AND 799999 THEN '750,000 - 799,999'
+             WHEN sold_price BETWEEN 800000 AND 849999 THEN '800,000 - 849,999'
+	     	 WHEN sold_price BETWEEN 850000 AND 899999 THEN '850,000 - 899,999'
+	     	 WHEN sold_price BETWEEN 900000 AND 949999 THEN '900,000 - 949,999'
              WHEN sold_price BETWEEN 950000 AND 999999 THEN '950,000 - 999,999'
-	     ELSE 'more than 1,0000,000' END AS dist_group
+	     	 ELSE 'more than 1,0000,000' END AS dist_group
  FROM HOUSES
 ) AS h
 GROUP BY dist_group
 ORDER BY 1;
 
--- Prices Mean vs Median
-WITH year_price AS
-(SELECT extract(year from sold_date) AS year,
-		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY h.sold_price) AS median,
- 		AVG(h.sold_price) AS average
-FROM houses h
-GROUP BY 1
-)
-SELECT  year,
- 		median AS median_price,
-		average
-FROM year_price
-GROUP BY 1, 2, 3
-ORDER BY 1, 2;
 
 -- MAX, MIN, SUM PRICE, SUM SALES, MEAN , MEDIAN, AVERAGE sales per year
 SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median,
@@ -283,3 +257,12 @@ SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median,
 	   MAX(sold_price) AS max_price,
 	   MIN(sold_price) AS min_price
 FROM houses
+
+
+-- Median price vs Volume by month, year
+SELECT date_trunc('month', sold_date)::date AS order_month,
+	   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY h.sold_price) AS median,
+	   AVG(sold_price) AS average,
+	   COUNT(h.*) AS volume
+FROM houses h
+GROUP BY 1
