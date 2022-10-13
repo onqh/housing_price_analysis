@@ -10,7 +10,7 @@ This project uses following languages/tools
 * Tableau Desktop
 
 ## Data
-Data is downloaded from [here](https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads)
+Data is downloaded from [here](https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads).
 
 ## Import data to PosgreSQL
 Using psql prompt:
