@@ -2,6 +2,7 @@
 
 ## Project Purpose
 Looking at UK housing price and location data and visualizing them.
+<br/>
 Aiming to show trends or comparison of UK housing data.
 ## Tools
 This project uses following languages/tools
