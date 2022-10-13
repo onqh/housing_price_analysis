@@ -6,8 +6,8 @@ Looking at UK housing price and location data and visualizing them.
 Aiming to show trends or comparison of UK housing data.
 ## Tools
 This project uses following languages/tools
-* PostgreSQL
-* Tableau Desktop
+* PostgreSQL.
+* Tableau Desktop.
 
 ## Data
 Data is downloaded from [here](https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads).
