@@ -13,10 +13,12 @@ Data is downloaded from [here](https://www.gov.uk/government/statistical-data-se
 
 ## Import data to PosgreSQL
 Open psql prompt:
+
 \COPY <table name> FROM 'location + file_name' DELIMITER ',' CSV HEADER;
 
 ## Tableau Dashboard
 ![Alt text](tableau/housing_price_analysis_dashboard_1.png?raw=true "Optional Title")
+![Alt text](tableau/housing_price_analysis_dashboard_2.png?raw=true "Optional Title")
 
 
 
