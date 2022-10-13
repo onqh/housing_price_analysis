@@ -12,7 +12,7 @@ This project uses following languages/tools
 Data is downloaded from [here](https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads)
 
 ## Import data to PosgreSQL
-Open psql prompt:
+Using psql prompt:
 <br/>
 `\COPY <table name> FROM 'location + file_name' DELIMITER ',' CSV HEADER;`
 
